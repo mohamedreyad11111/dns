@@ -1,0 +1,41 @@
+name: DNS Tunnel Server Host
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-dns-tunnel:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Update DuckDNS IP
+        run: |
+          # 1. تحديث IP الـ DuckDNS بالـ IP الحالي للـ Runner
+          echo "Updating DuckDNS..."
+          curl -s "https://www.duckdns.org/update?domains=mureyad&token=${{ secrets.DUCKDNS_TOKEN }}&ip="
+          echo "DuckDNS Updated Successfully!"
+
+      - name: Install Dependencies & dnstt
+        run: |
+          sudo apt-get update && sudo apt-get install -y wget git golang psmisc
+          git clone https://www.bamsoftware.com/git/dnstt.git
+          cd dnstt/dnstt-server
+          go build
+
+      - name: Free Port 53 and Run dnstt Server
+        run: |
+          cd dnstt/dnstt-server
+          
+          # إنتاج المفاتيح
+          ./dnstt-server -gen-key -privkey-file server.key -pubkey-file server.pub
+          echo "=== PUBLIC KEY ==="
+          cat server.pub
+          echo "=================="
+          
+          # إيقاف الخدمة الحاجزة للبورت 53
+          sudo systemctl stop systemd-resolved
+          sudo systemctl disable systemd-resolved
+          sudo fuser -k 53/udp || true
+          
+          # تشغيل السيرفر مباشرة على mureyad.duckdns.org
+          sudo ./dnstt-server -udp :53 -privkey-file server.key mureyad.duckdns.org 127.0.0.1:22
