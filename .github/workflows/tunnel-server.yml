@@ -1,0 +1,39 @@
+name: DNS Tunnel Server Host
+
+on:
+  workflow_dispatch: # تشغيل يدوياً وقت ما تحب تفتح النفق
+
+jobs:
+  run-dns-tunnel:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Update CloudDNS with Current Runner IP
+        run: |
+          # 1. تحديث الـ IP فوراً للـ Runner الحالي لضمان توجيه الترافيك له
+          RESPONSE=$(curl -s "${{ secrets.CLOUDDNS_DYNAMIC_URL }}")
+          echo "CloudDNS Updated: $RESPONSE"
+
+      - name: Install Dependencies & dnstt
+        run: |
+          # 2. تحميل وتثبيت dnstt-server
+          sudo apt-get update && sudo apt-get install -y wget git golang
+          git clone https://www.bamsoftware.com/git/dnstt.git
+          cd dnstt/dnstt-server
+          go build
+
+      - name: Generate Keys (or use saved keys)
+        run: |
+          cd dnstt/dnstt-server
+          # إنتاج مفاتيح التشفير للـ Tunnel
+          ./dnstt-server -gen-key -privkey-file server.key -pubkey-file server.pub
+          echo "=== PUBLIC KEY (Copy this to your Client) ==="
+          cat server.pub
+          echo "============================================="
+
+      - name: Run dnstt Server (Keep Alive)
+        run: |
+          cd dnstt/dnstt-server
+          # 3. تشغيل السيرفر على Port 53 UDP وتوجيهه لـ SSH local أو أي Proxy
+          # ملاحظة: سنستخدم sudo لأن port 53 يحتاج صلاحيات root
+          sudo ./dnstt-server -udp :53 -privkey-file server.key test.mureyad.duckdns.org 127.0.0.1:22
