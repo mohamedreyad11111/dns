@@ -1,0 +1,32 @@
+name: Dynamic DNS Auto Updater
+
+on:
+  schedule:
+    # يشتغل أوتوماتيكياً كل 6 ساعات (at minute 0 past every 6th hour)
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # يتيح لك تشغيل السكريبت يدوياً في أي وقت للنزول والتجربة
+
+jobs:
+  update-ddns:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update DuckDNS IP Address
+        run: |
+          DOMAIN="mureyad"
+          TOKEN="${{ secrets.DUCKDNS_TOKEN }}"
+          
+          echo "Sending update request to DuckDNS..."
+          
+          # استدعاء رابط التحديث لـ DuckDNS
+          RESPONSE=$(curl -s "https://www.duckdns.org/update?domains=${DOMAIN}&token=${TOKEN}&ip=")
+          
+          if [ "$RESPONSE" = "OK" ]; then
+            echo "SUCCESS: DuckDNS IP updated successfully!"
+          else
+            echo "ERROR: Failed to update DuckDNS IP. Response: $RESPONSE"
+            exit 1
+          fi
