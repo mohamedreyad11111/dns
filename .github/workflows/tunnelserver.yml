@@ -1,4 +1,4 @@
-name: DNS Tunnel Server Host
+name: DNS l Server Host
 
 on:
   workflow_dispatch:
