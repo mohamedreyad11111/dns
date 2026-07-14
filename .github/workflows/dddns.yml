@@ -1,0 +1,18 @@
+name: CloudDNS Auto Updater
+
+on:
+  schedule:
+    # يشتغل أوتوماتيكياً كل 6 ساعات
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # يتيح لك التشغيل اليدوي للاختبار في أي وقت
+
+jobs:
+  update-ip:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Update Request to CloudDNS
+        run: |
+          # بيستدعي الرابط، وCloudDNS بياخد الـ IP بتاع الـ Runner ويحدث A Record أوتوماتيكياً
+          RESPONSE=$(curl -s "${{ secrets.CLOUDDNS_DYNAMIC_URL }}")
+          echo "CloudDNS Response: $RESPONSE"
